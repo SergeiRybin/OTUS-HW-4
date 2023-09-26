@@ -1,45 +1,52 @@
 #pragma once
 #include <cassert>
 #include <memory>
-
+#include <map>
+#include <algorithm>
 template <typename T, std::size_t size = 10>
 class chunkAlloc
 {
 private:
     size_t shift = 0;
-    void *basePtr = nullptr;
-
+    T *topPtr = nullptr;
+    std::map<T*, std::size_t> chunks;
 public:
     using value_type = T;
 
     T *allocate(size_t n)
     {
-        assert((shift + n) <= size);
-        if (!basePtr)
+        if (shift + n > chunks.size() * size)
         {
-            basePtr = malloc(size * sizeof(T));
+            topPtr = reinterpret_cast<T*>(malloc(size * sizeof(T)));
+            chunks[topPtr] = 0;
         }
-        auto retPtr = reinterpret_cast<T *>(basePtr) + shift;
-        ++shift;
+        auto retPtr = topPtr + shift % size;
+        shift += n;
         return retPtr;
     }
 
     void deallocate(T *p, size_t n)
     {
-        if (shift)
+        const auto &chunk = find_if(chunks.begin(), chunks.end(), 
+            [p](auto &item){return p - item.first < size;});
+        assert(chunk != chunks.end());
+        assert(chunk->second);
+        if (!--(chunk->second))
         {
-            --shift;
-        }
-        else
-        {
-            free(basePtr);
+            free(chunk->first);
+            chunks.erase(chunk);
         }
     }
 
     template <typename U, typename... Args>
-    void construct(U *p, Args &&...args) const
+    void construct(U *p, Args &&...args)
     {
         new (p) U(std::forward<Args>(args)...);
+        const auto &chunk = find_if(chunks.begin(), chunks.end(), 
+            [p](auto &item){return p - reinterpret_cast<U*>(item.first) < size;});
+        assert(chunk != chunks.end());
+        assert(chunk->second < size);
+        (chunk->second)++;
     }
 
     void destroy(T *p) const

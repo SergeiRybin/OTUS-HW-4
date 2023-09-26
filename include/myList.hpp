@@ -93,21 +93,11 @@ public:
     {
         std::swap(head, rhs.head);
         std::swap(tail, rhs.tail);
-    }
-
-    void operator=(const myList &rhs)
-    {
-        clear();
-        for (auto it = rhs.cbegin(); it != rhs.cend(); ++it)
-        {
-            auto ptr = nodeAlloc.allocate(1);
-            memcpy(ptr, &(*it), sizeof(Node));
-            growTail(ptr);
-        }
+        std::swap(nodeAlloc, rhs.nodeAlloc);
     }
 
     template <typename S>
-    void operator=(const S &rhs)
+    void operator=(S &&rhs)
     {
         clear();
         for (auto it = rhs.cbegin(); it != rhs.cend(); ++it)

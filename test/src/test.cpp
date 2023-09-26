@@ -22,9 +22,11 @@ BOOST_AUTO_TEST_CASE(copyTest)
     }
 
     myList<hard, chunkAlloc<hard>> targetSameAllocMyList{};
+    myList<hard, chunkAlloc<hard>> tempMyList{};
     myList<hard, std::allocator<hard>> targetDiffAllocMyList{};
 
     targetSameAllocMyList = allocMyList;
+    tempMyList = allocMyList;
 
     for (auto lhs = allocMyList.cbegin(), rhs = targetSameAllocMyList.cbegin(); lhs != allocMyList.cend();)
     {
@@ -40,8 +42,7 @@ BOOST_AUTO_TEST_CASE(copyTest)
         BOOST_TEST((*allocMyList.begin()).fa == 0);
     }
 
-    targetSameAllocMyList = std::move(targetSameAllocMyList);
-
+    targetSameAllocMyList = std::move(tempMyList);
 
     for (auto lhs = allocMyList.cbegin(), rhs = targetSameAllocMyList.cbegin(); lhs != allocMyList.cend();)
     {
@@ -78,6 +79,26 @@ BOOST_AUTO_TEST_CASE(copyTest)
         ++drhs;
         ++lhs;
     }
+}
+
+BOOST_AUTO_TEST_CASE(multipleChunkTest)
+{
+    myList<hard, chunkAlloc<hard>> allocMyList{};
+    for (size_t i = 0; i < 12; ++i)
+    {
+        allocMyList.emplace_back(i, i);
+    }
+    std::cout << "======allocMyList======" << std::endl;
+    size_t c = 0;
+    for (const auto &i : allocMyList)
+    {
+        std::cout << c << ": fa=" << i.fa << " fi=" << i.fi << std::endl;
+        ++c;
+    }
+
+    myList<hard, chunkAlloc<hard>> targetSameAllocMyList{};
+
+    targetSameAllocMyList = std::move(allocMyList);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
